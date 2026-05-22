@@ -51,6 +51,12 @@ Option **3** opens a sub-menu with 6 search types: Title, Actor, Director, Genre
 
 ---
 
+## Acknowledgments
+
+The movie dataset used in this project is sourced from the [IMDB 5000 Movie Dataset](https://www.kaggle.com/datasets/carolzhangdc/imdb-5000-movie-dataset) on Kaggle, originally compiled by Carol Zhang.
+
+---
+
 ## Core Data Structures
 
 | Data Structure | Purpose |
