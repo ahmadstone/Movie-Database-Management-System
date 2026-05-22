@@ -1,0 +1,212 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{url}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+
+% Proper C++ code highlighting
+\usepackage{listings}
+\lstset{
+    language=C++,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{gray},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    frame=single,
+    tabsize=4,
+    breaklines=true,
+    breakatwhitespace=false,
+    captionpos=b,
+    morekeywords={nullptr,size_t,string}
+}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+
+\title{Movie Database Management System Using
+Data Structures}
+
+\author{
+\IEEEauthorblockN{Muhammad Ahmad}
+\IEEEauthorblockA{\textit{24i-2548} \\
+\textit{Department of Data Science (DS-B)}\\
+FAST National University, Pakistan \\
+i242548@nu.edu.pk}
+\and
+\IEEEauthorblockN{Khadija Zaidi}
+\IEEEauthorblockA{\textit{24i-6506} \\
+\textit{Department of Data Science (DS-B)}\\
+FAST National University, Pakistan \\
+i246506@nu.edu.pk}
+}
+
+\date{December 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper presents a comprehensive Movie Database Management System that efficiently handles large-scale movie metadata through proper CSV parsing, hash tables and AVL trees, and a similarity graph constructed using shared actors and genres. The system supports fast searches, personalized movie recommendations via BFS, and shortest path discovery between any two movies. Key contributions include properly cleaning the CSV file, O(n²) graph construction for semantic similarity, and O(1) lookups using hashing with chaining.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Movie Recommendation System, Graph Algorithms, BFS, Hash Tables, CSV Parsing, Data Structures, C++
+\end{IEEEkeywords}
+
+\section{Introduction}
+The Movie Database Management System processes the IMDb movie metadata dataset to provide advanced searching, recommendation, and relationship discovery features. This section details the core algorithms powering the system.
+
+\section{Methodology}
+
+This section describes the five fundamental algorithmic components of the system.
+
+\subsection{CSV Parsing and Data Loading}
+
+Robust parsing of \texttt{movie\_metadata.csv} containing quoted fields and escaped quotes.
+
+\begin{itemize}
+    \item \textbf{\texttt{getNextField()}} — Extracts fields handling escaped quotes:
+\begin{lstlisting}[caption={getNextField() — Core CSV field extractor}]
+static string getNextField(const string& line, size_t& pos) {
+    if (pos >= line.size()) { ++pos; return string(); }
+    string field = "";
+    if (line[pos] == '"') {
+        ++pos;
+        while (pos < line.size()) {
+            char c = line[pos];
+            if (c == '"') {
+                if (pos + 1 < line.size() && line[pos + 1] == '"') {
+                    field.push_back('"'); pos += 2; continue;
+                } else { ++pos; break; }
+            } else { field.push_back(c); ++pos; }
+        }
+        while (pos < line.size() && line[pos] != ',') ++pos;
+        if (pos < line.size() && line[pos] == ',') ++pos;
+    } else {
+        while (pos < line.size() && line[pos] != ',') {
+            field.push_back(line[pos++]);
+        }
+        if (pos < line.size() && line[pos] == ',') ++pos;
+    }
+    return field;
+}
+\end{lstlisting}
+
+    \item \textbf{\texttt{cleanField()}} — Removes surrounding quotes, replaces non-breaking spaces, and trims whitespace.
+\end{itemize}
+
+The \texttt{loadFromCSV()} function orchestrates parsing and populates all data structures.
+
+\subsection{Graph Construction Based on Actor/Genre Similarity}
+
+An undirected graph is built where movies are connected if they share at least one actor or genre.
+
+\begin{lstlisting}[caption={Core of buildGraph() — O(n²) pairwise comparison}]
+for (int i = 0; i < total; i++) {
+    for (int j = i + 1; j < total; j++) {
+        MovieNode* A = movieArray[i];
+        MovieNode* B = movieArray[j];
+
+        bool sharedActor = /* 9 comparisons across top-3 actors */;
+        bool sharedGenre = shareGenre(A->genres, B->genres);
+
+        if (sharedActor || sharedGenre)
+            graph.addEdge(i, j);
+    }
+}
+\end{lstlisting}
+
+Time complexity: $O(n^2 \times m)$ where $m$ is average number of genres.
+
+\subsection{Breadth-First Search (BFS) Algorithms}
+
+\begin{enumerate}
+    \item \textbf{Standard BFS} for traversal.
+    \item \textbf{Recommendation Engine} — Returns up to 20 most similar movies:
+\begin{lstlisting}[caption={recommendMovies() using BFS}]
+while (front < rear && recCount < maxRecommendations) {
+    int movie = queue[front++];
+    if (movie != start) recommendations[recCount++] = movie;
+    // enqueue neighbors...
+}
+\end{lstlisting}
+
+    \item \textbf{Shortest Path Discovery} — Uses parent tracking:
+\begin{lstlisting}[caption={Path reconstruction in BFS_ShortestPath()}]
+int crawl = end;
+while (crawl != -1) {
+    path[count++] = crawl;
+    crawl = parent[crawl];
+}
+// Print path in reverse order
+\end{lstlisting}
+\end{enumerate}
+
+All BFS variants run in $O(V + E)$.
+
+\subsection{Hash Table with Chaining (DJB2)}
+
+Multiple hash tables enable $O(1)$ average lookup by title, actor, director, genre, and year.
+
+\begin{lstlisting}[caption={DJB2 Hash Function}]
+int hashFunction(const string& key) const {
+    unsigned long hash = 5381;
+    int c;
+    const char* str = key.c_str();
+    while ((c = *str++))
+        hash = ((hash << 5) + hash) + c;  // hash * 33 + c
+    return hash % tableSize;
+}
+\end{lstlisting}
+
+Search performs case-insensitive exact matching within collision chains.
+
+\subsection{Summary of Core Algorithms}
+
+\begin{table}[t]
+\centering
+\caption{Core Algorithms Overview}
+\begin{tabular}{l l l}
+\toprule
+\textbf{Algorithm} & \textbf{Purpose} & \textbf{Time Complexity} \\
+\midrule
+CSV Parsing & Robust data ingestion & $O(n \times m)$ \\
+Graph Building & Similarity network & $O(n^2 \times m)$ \\
+BFS Traversal & Exploration & $O(V+E)$ \\
+BFS Shortest Path & Connection paths & $O(V+E)$ \\
+Hash Table (DJB2 + Chaining) & Fast lookup & $O(1)$ average \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Results}
+The system successfully loads ~5,000 movies, builds a dense similarity graph, and provides sub-second responses for all search and recommendation queries. BFS-based recommendations yield meaningfully similar movies, and shortest-path queries reveal interesting actor/genre connections (e.g., "six degrees of separation"-style chains).
+
+\section{Discussion}
+The resilient CSV processing along with different indexing methods and graph reasoning has combined together to create a wealth of functions but with still great performance. The O(n²) graph creation is tolerable for the dataset size that is set and may be further developed with sampling or approximate techniques for larger collections of texts.
+
+\section{Conclusion}
+A complete movie database system has been implemented which is advanced and demonstrates the practical use of the fundamental algorithms and data structures: robust parsing, efficient indexing, and graph traversal. The system is a good platform for the exploration of relationships in movie metadata.
+
+\section*{Acknowledgment}
+The authors thank the instructors and teaching assistants of the Data Structures course for their guidance.
+
+\bibliographystyle{unsrt}
+\begin{thebibliography}{1}
+\bibitem{imdb}
+IMDb Dataset, \url{https://www.kaggle.com/datasets/carolzhangdc/imdb-5000-movie-dataset}
+\end{thebibliography}
+
+\end{document}
